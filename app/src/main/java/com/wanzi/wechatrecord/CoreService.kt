@@ -103,10 +103,10 @@ class CoreService : IntentService("CoreService") {
         try {
             // 打开数据库连接
             val db = SQLiteDatabase.openOrCreateDatabase(file, password, null, hook)
-            openUserInfoTable(db)
-            openContactTable(db)
+//            openUserInfoTable(db)
+//            openContactTable(db)
             openMessageTable(db)
-            openChatRoomTable(db)
+//            openChatRoomTable(db)
             db.close()
         } catch (e: Exception) {
             log("打开数据库失败：${e.message}")
@@ -172,7 +172,7 @@ class CoreService : IntentService("CoreService") {
     // 打开聊天记录表
     private fun openMessageTable(db: SQLiteDatabase) {
         // 一般公众号原始ID开头都是gh_
-        val cursor = db.rawQuery("select * from message where talker not like 'gh_%' and msgid > ? ", arrayOf(getLastMsgId(db)))
+        val cursor = db.rawQuery("select * from message where talker not like 'gh_%' and msgid > ? ", arrayOf("0"))
         if (cursor.count > 0) {
             while (cursor.moveToNext()) {
                 val msgSvrId = cursor.getString(cursor.getColumnIndex("msgSvrId"))
@@ -195,6 +195,7 @@ class CoreService : IntentService("CoreService") {
                     message.msgSvrId = msgSvrId
                     message.type = type
                     // 内容不做处理，直接上传
+                    if (type == "1") log("聊天文字：$content")
                     message.content = content
                     /*message.content = when (message.type) {
                         "1" -> content
@@ -212,54 +213,54 @@ class CoreService : IntentService("CoreService") {
                     message.createTime = TimeUtils.timeFormat(createTime, TimeUtils.TIME_STYLE)
                     message.talker = talker
                     // 保存图片、语音、小视频文件信息
-                    if (type == "3" || type == "34" || type == "43") {
-                        val weChatFile = WeChatFile()
-                        weChatFile.msgSvrId = msgSvrId
-                        weChatFile.type = type
-                        weChatFile.date = Date().time
-                        when (type) {
-                            "3" -> {
-                                // 图片文件需要根据msgSvrId在ImgInfo2表中查找
-                                val imgInfoCu = db.rawQuery("select bigImgPath from ImgInfo2 where msgSvrId = ? ", arrayOf(msgSvrId))
-                                if (imgInfoCu.count > 0) {
-                                    while (imgInfoCu.moveToNext()) {
-                                        val bigImgPath = imgInfoCu.getString(imgInfoCu.getColumnIndex("bigImgPath"))
-                                        weChatFile.name = bigImgPath
-                                    }
-                                }
-                                imgInfoCu.close()
-                                weChatFile.path = WX_FILE_PATH + uinEnc + "/image2/" + weChatFile.name.substring(0, 2) + "/" + weChatFile.name.substring(2, 4) + "/" + weChatFile.name
-                                // 接收的图片在ImgInfo2表中会有两种bigImgPath，一种是原图，一种是缓存图，缓存图的格式是文件.temp.jpg
-                                // 如果有原图，则上传原图，否则上传缓存图
-                                if (weChatFile.path.contains(".temp")) {
-                                    val originalImgPath = weChatFile.path.replace(".temp", "")
-                                    if (File(originalImgPath).exists()) {
-                                        weChatFile.name = weChatFile.name.replace(".temp", "")
-                                        weChatFile.path = originalImgPath
-                                    }
-                                }
-                                // 过滤一些不是jpg的文件
-                                if (weChatFile.name.endsWith(".jpg")) {
-                                    message.imgPath = weChatFile.name
-                                    weChatFile.save()
-                                }
-                            }
-                            "34" -> {
-                                weChatFile.name = "msg_$imgPath.amr"
-                                val nameEnc = MD5.getMD5Str(imgPath)
-                                weChatFile.path = WX_FILE_PATH + uinEnc + "/voice2/" + nameEnc.substring(0, 2) + "/" + nameEnc.substring(2, 4) + "/" + weChatFile.name
-                                message.imgPath = weChatFile.name
-                                weChatFile.save()
-                            }
-                            "43" -> {
-                                weChatFile.name = "$imgPath.mp4"
-                                weChatFile.path = WX_FILE_PATH + uinEnc + "/video/" + weChatFile.name
-                                message.imgPath = weChatFile.name
-                                weChatFile.save()
-                            }
-                        }
-                    }
-                    log("聊天信息：$message")
+//                    if (type == "3" || type == "34" || type == "43") {
+//                        val weChatFile = WeChatFile()
+//                        weChatFile.msgSvrId = msgSvrId
+//                        weChatFile.type = type
+//                        weChatFile.date = Date().time
+//                        when (type) {
+//                            "3" -> {
+//                                // 图片文件需要根据msgSvrId在ImgInfo2表中查找
+//                                val imgInfoCu = db.rawQuery("select bigImgPath from ImgInfo2 where msgSvrId = ? ", arrayOf(msgSvrId))
+//                                if (imgInfoCu.count > 0) {
+//                                    while (imgInfoCu.moveToNext()) {
+//                                        val bigImgPath = imgInfoCu.getString(imgInfoCu.getColumnIndex("bigImgPath"))
+//                                        weChatFile.name = bigImgPath
+//                                    }
+//                                }
+//                                imgInfoCu.close()
+//                                weChatFile.path = WX_FILE_PATH + uinEnc + "/image2/" + weChatFile.name.substring(0, 2) + "/" + weChatFile.name.substring(2, 4) + "/" + weChatFile.name
+//                                // 接收的图片在ImgInfo2表中会有两种bigImgPath，一种是原图，一种是缓存图，缓存图的格式是文件.temp.jpg
+//                                // 如果有原图，则上传原图，否则上传缓存图
+//                                if (weChatFile.path.contains(".temp")) {
+//                                    val originalImgPath = weChatFile.path.replace(".temp", "")
+//                                    if (File(originalImgPath).exists()) {
+//                                        weChatFile.name = weChatFile.name.replace(".temp", "")
+//                                        weChatFile.path = originalImgPath
+//                                    }
+//                                }
+//                                // 过滤一些不是jpg的文件
+//                                if (weChatFile.name.endsWith(".jpg")) {
+//                                    message.imgPath = weChatFile.name
+//                                    weChatFile.save()
+//                                }
+//                            }
+//                            "34" -> {
+//                                weChatFile.name = "msg_$imgPath.amr"
+//                                val nameEnc = MD5.getMD5Str(imgPath)
+//                                weChatFile.path = WX_FILE_PATH + uinEnc + "/voice2/" + nameEnc.substring(0, 2) + "/" + nameEnc.substring(2, 4) + "/" + weChatFile.name
+//                                message.imgPath = weChatFile.name
+//                                weChatFile.save()
+//                            }
+//                            "43" -> {
+//                                weChatFile.name = "$imgPath.mp4"
+//                                weChatFile.path = WX_FILE_PATH + uinEnc + "/video/" + weChatFile.name
+//                                message.imgPath = weChatFile.name
+//                                weChatFile.save()
+//                            }
+//                        }
+//                    }
+//                    log("聊天信息：$message")
                     message.save()
                 }
             }
